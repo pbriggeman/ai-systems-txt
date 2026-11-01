@@ -1,0 +1,1064 @@
+
+
+
+
+Network Working Group                                       P. Briggeman
+Internet-Draft                                             November 2026
+Intended status: Informational                                          
+Expires: 10 May 2027
+
+
+  ai-systems.txt: A Well-Known File for Declaring AI Systems and Their
+                         Measured Capabilities
+                     draft-briggeman-ai-systems-00
+
+Abstract
+
+   This document defines "ai-systems.txt", a plain-text file that an
+   organisation that builds or deploys artificial intelligence (AI)
+   systems publishes at a well-known location on its own domain.  The
+   file declares, in machine-readable and human-readable form, which AI
+   systems the organisation has released, what their measured
+   capabilities are, who measured them, under what conditions, and where
+   the evidence lives.  Every capability claim carries a provenance tier
+   (ATTESTED, MEASURED, or DECLARED); anything absent from a valid,
+   unexpired file is UNDECLARED by definition.  The file is signed and
+   expiring, so claims are attributable, timestamped, and falsifiable.
+   robots.txt tells machines what they may take from a publisher; ai-
+   systems.txt is the reverse: it tells anyone what a maker has built,
+   in a form designed to be checked rather than believed.
+
+Status of This Memo
+
+   This Internet-Draft is submitted in full conformance with the
+   provisions of BCP 78 and BCP 79.
+
+   Internet-Drafts are working documents of the Internet Engineering
+   Task Force (IETF).  Note that other groups may also distribute
+   working documents as Internet-Drafts.  The list of current Internet-
+   Drafts is at https://datatracker.ietf.org/drafts/current/.
+
+   Internet-Drafts are draft documents valid for a maximum of six months
+   and may be updated, replaced, or obsoleted by other documents at any
+   time.  It is inappropriate to use Internet-Drafts as reference
+   material or to cite them other than as "work in progress."
+
+   This Internet-Draft will expire on 5 May 2027.
+
+Copyright Notice
+
+   Copyright (c) 2026 IETF Trust and the persons identified as the
+   document authors.  All rights reserved.
+
+
+
+
+Briggeman                  Expires 10 May 2027                  [Page 1]
+
+Internet-Draft               ai-systems.txt                November 2026
+
+
+   This document is subject to BCP 78 and the IETF Trust's Legal
+   Provisions Relating to IETF Documents (https://trustee.ietf.org/
+   license-info) in effect on the date of publication of this document.
+   Please review these documents carefully, as they describe your rights
+   and restrictions with respect to this document.
+
+Table of Contents
+
+   1.  Introduction  . . . . . . . . . . . . . . . . . . . . . . . .   2
+     1.1.  Conventions and Terminology . . . . . . . . . . . . . . .   3
+   2.  Provenance Tiers  . . . . . . . . . . . . . . . . . . . . . .   4
+   3.  Location and Discovery  . . . . . . . . . . . . . . . . . . .   5
+   4.  File Format . . . . . . . . . . . . . . . . . . . . . . . . .   5
+     4.1.  General Rules . . . . . . . . . . . . . . . . . . . . . .   5
+     4.2.  Dates and Numbers . . . . . . . . . . . . . . . . . . . .   6
+     4.3.  ABNF (Informative Summary)  . . . . . . . . . . . . . . .   6
+   5.  Header Fields . . . . . . . . . . . . . . . . . . . . . . . .   6
+   6.  System Stanza Fields  . . . . . . . . . . . . . . . . . . . .   8
+   7.  Evaluation Blocks . . . . . . . . . . . . . . . . . . . . . .   9
+   8.  The Undisclosed Rule  . . . . . . . . . . . . . . . . . . . .  11
+   9.  Freshness, Versioning, and Change . . . . . . . . . . . . . .  11
+   10. Signing . . . . . . . . . . . . . . . . . . . . . . . . . . .  11
+   11. JSON Mirror . . . . . . . . . . . . . . . . . . . . . . . . .  11
+   12. Validator Behaviour . . . . . . . . . . . . . . . . . . . . .  12
+     12.1.  Comparison Tolerances  . . . . . . . . . . . . . . . . .  12
+   13. Conformance Levels  . . . . . . . . . . . . . . . . . . . . .  13
+   14. Security Considerations . . . . . . . . . . . . . . . . . . .  13
+   15. Privacy Considerations  . . . . . . . . . . . . . . . . . . .  14
+   16. Adoption and Relationship to Existing Work  . . . . . . . . .  14
+   17. Open Questions for Reviewers  . . . . . . . . . . . . . . . .  14
+   18. IANA Considerations . . . . . . . . . . . . . . . . . . . . .  15
+     18.1.  Well-Known URI Registration  . . . . . . . . . . . . . .  15
+     18.2.  Field-Name Registry  . . . . . . . . . . . . . . . . . .  15
+   19. References  . . . . . . . . . . . . . . . . . . . . . . . . .  15
+     19.1.  Normative References . . . . . . . . . . . . . . . . . .  15
+     19.2.  Informative References . . . . . . . . . . . . . . . . .  16
+   Appendix A.  Worked Example . . . . . . . . . . . . . . . . . . .  16
+   Appendix B.  JSON Schema for the JSON Mirror (Abridged) . . . . .  18
+   Appendix C.  Acknowledgements . . . . . . . . . . . . . . . . . .  19
+   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  19
+
+1.  Introduction
+
+   Today, information about what AI systems exist and what they can do
+   reaches the public as launch marketing, cropped benchmark
+   screenshots, leaks, and social-media claims.  Independent parties
+   (for example, Epoch AI, METR, Artificial Analysis, and the Stanford
+   AI Index) reconstruct the truth after the fact.  Concretely:
+
+
+
+Briggeman                  Expires 10 May 2027                  [Page 2]
+
+Internet-Draft               ai-systems.txt                November 2026
+
+
+   *  There is no canonical, maker-maintained record of what AI systems
+      exist.  The closest registry is a third-party reconstruction.
+
+   *  Capability claims are routinely published without the conditions
+      that make them comparable (benchmark version, agent scaffold,
+      reasoning effort, tool access, date).
+
+   *  Systems are silently updated, renamed, and retired; yesterday's
+      claim attaches to today's different system.
+
+   *  Rumor fills every gap.  A rumored system or score can be neither
+      confirmed nor denied against any authoritative artefact, so rumor
+      and fact circulate with equal weight.
+
+   This document defines a declaration format that addresses those
+   problems at the source.  An ai-systems.txt file is:
+
+   *  A _declaration_: the maker's own signed statement, attributable
+      and timestamped.
+
+   *  A _claim index_: every capability claim carries its provenance
+      tier (Section 2), so a reader can grade it without further
+      research.
+
+   *  A _feed_: monitors can fetch, hash, and diff the file on a
+      schedule and report precisely what changed.
+
+   The file is not a trust mechanism by itself: a declaration can be
+   wrong or dishonest, and the format's defence is falsifiability
+   (Section 14), not faith.  It is not a content-permissions file:
+   training consent, crawling rules, and AI usage preferences for a
+   publisher's content are the subject of [RFC9309], the IETF aipref
+   work, and the existing "ai.txt" proposals [AI-TXT]; this file governs
+   claims about a maker's _systems_, and its name was chosen to avoid
+   colliding with those proposals.  It is not a model card or system
+   card; those remain the right place for long-form discussion, and this
+   file links to them.  It is not an agent interface description; agent
+   cards describe how to call an agent, while this file describes what a
+   system is and can do, including systems with no public interface.
+
+1.1.  Conventions and Terminology
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+   "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and
+   "OPTIONAL" in this document are to be interpreted as described in BCP
+   14 [RFC2119] [RFC8174] when, and only when, they appear in all
+   capitals, as shown here.
+
+
+
+
+Briggeman                  Expires 10 May 2027                  [Page 3]
+
+Internet-Draft               ai-systems.txt                November 2026
+
+
+   Grammar is given in Augmented Backus-Naur Form (ABNF) [RFC5234].  The
+   terms _publisher_ (the organisation making the declaration), _system_
+   (an AI system declared in the file), _evaluator_ (the party that
+   produced a measurement), and _validator_ (software that checks a file
+   per Section 12) are used throughout.
+
+2.  Provenance Tiers
+
+   Every statement about a system falls into exactly one of four tiers.
+   The file expresses the first three; the fourth is what a validator
+   concludes about everything else.
+
+   +============+=======================+=============================+
+   | Tier       | Meaning               | Requirement                 |
+   +============+=======================+=============================+
+   | ATTESTED   | An independent        | Evaluation block with a     |
+   |            | evaluator measured    | named independent           |
+   |            | the claim and stands  | evaluator, an evidence URL, |
+   |            | behind it in a        | and an Attestation value:   |
+   |            | checkable way.        | the SHA-256 hash of the     |
+   |            |                       | evaluator's report, or the  |
+   |            |                       | evaluator's                 |
+   |            |                       | countersignature reference. |
+   +------------+-----------------------+-----------------------------+
+   | MEASURED   | A named evaluator     | Evaluation block with       |
+   |            | measured and          | evaluator (marked           |
+   |            | published the claim,  | independent if so),         |
+   |            | with method and date. | benchmark version,          |
+   |            | The evaluator may be  | conditions, measured date,  |
+   |            | independent or the    | evidence URL.               |
+   |            | maker, and the block  |                             |
+   |            | states which.         |                             |
+   +------------+-----------------------+-----------------------------+
+   | DECLARED   | The maker asserts the | Any field or evaluation     |
+   |            | claim; no independent | block not meeting the tiers |
+   |            | measurement is        | above.  Believable,         |
+   |            | linked.               | citable, unverified.        |
+   +------------+-----------------------+-----------------------------+
+   | UNDECLARED | The system or         | Concluded by validators.    |
+   |            | capability does not   | This is the rumor tier: by  |
+   |            | appear in a valid,    | definition, nothing here    |
+   |            | unexpired file at     | has been stated on the      |
+   |            | all.                  | record by the maker.        |
+   +------------+-----------------------+-----------------------------+
+
+                        Table 1: Provenance tiers
+
+   Two derived verdicts complete the vocabulary:
+
+
+
+Briggeman                  Expires 10 May 2027                  [Page 4]
+
+Internet-Draft               ai-systems.txt                November 2026
+
+
+   CONTRADICTED  A claim in the file conflicts with the named
+      evaluator's own published data or with the registry, beyond the
+      tolerances in Section 12.1.  A validator MUST surface both values.
+
+   STALE  The claim appeared in a file whose Expires timestamp has
+      passed.  Stale claims revert to unverified until the file is
+      renewed.
+
+3.  Location and Discovery
+
+   1.  The file MUST be served over HTTPS at "https://<domain>/.well-
+       known/ai-systems.txt" (well-known URIs per [RFC8615]).
+
+   2.  A JSON mirror with identical content SHOULD be served at
+       "https://<domain>/.well-known/ai-systems.json" (Section 11).
+
+   3.  For compatibility, a maker MAY also serve the file at "/ai-
+       systems.txt"; the well-known location takes precedence on any
+       conflict.
+
+   4.  A detached signature SHOULD be served at the file URL plus ".sig"
+       (Section 10).
+
+   5.  Discovery hints (optional; any one suffices): an HTTP response
+       header 'Link: </.well-known/ai-systems.txt>; rel="ai-systems";
+       type="text/plain"', or a comment line in the maker's robots.txt:
+       "# AI-Systems: https://<domain>/.well-known/ai-systems.txt".
+
+   6.  The file applies to the domain it is served from.  A maker with
+       several domains serves one file per domain, or identical files
+       whose Canonical field lists each domain's URL.
+
+   7.  Media types: "text/plain; charset=utf-8" for the file;
+       "application/json" for the mirror.
+
+4.  File Format
+
+4.1.  General Rules
+
+   *  The file is UTF-8 plain text.  Lines are "Field-Name: value".
+      Field names are case-insensitive ASCII; values are case-sensitive
+      unless a field definition says otherwise.
+
+   *  Lines beginning with "#" are comments.  Blank lines are ignored.
+      Parsers MUST ignore fields they do not recognise (forward
+      compatibility) and MUST NOT fail on them.
+
+
+
+
+
+Briggeman                  Expires 10 May 2027                  [Page 5]
+
+Internet-Draft               ai-systems.txt                November 2026
+
+
+   *  The file has two parts: one header block (fields before the first
+      "System" line), then one stanza per system.  A stanza continues
+      until the next "System" line or end of file.
+
+   *  An evaluation block begins with an "Evaluation:" line inside a
+      stanza; the evaluation-scoped fields that follow belong to it
+      until the next "Evaluation:" line or a non-evaluation field.
+
+   *  Repeatable fields MAY appear multiple times; the order of
+      "Contact" and "Registry-ID" lines denotes preference and
+      canonical-first, respectively.
+
+4.2.  Dates and Numbers
+
+   Dates are YYYY-MM-DD.  Timestamps (Expires) are RFC 3339 [RFC3339]
+   timestamps.  Quantities SHOULD be given in plain scientific or
+   decimal notation parseable by machines (for example, "4.05e11",
+   "2.0e25").  Human suffixes ("405B") are permitted in the text file,
+   but the JSON mirror MUST use plain numbers.
+
+4.3.  ABNF (Informative Summary)
+
+   file        = header *( stanza )
+   header      = *( field-line / comment / blank )
+   stanza      = system-line *( field-line / eval-block /
+                               comment / blank )
+   system-line = "System:" SP value CRLF
+   eval-block  = eval-line *( eval-field )
+   eval-line   = "Evaluation:" SP value CRLF
+   eval-field  = ("Evaluator" / "Score" / "Conditions" / "Measured" /
+                  "Evidence" / "Attestation" / "Tier") ":" SP value CRLF
+   field-line  = field-name ":" SP value CRLF
+   comment     = "#" *( VCHAR ) CRLF
+
+5.  Header Fields
+
+   The header block describes the declaration as a whole.  "Cards"
+   denotes cardinality.
+
+
+
+
+
+
+
+
+
+
+
+
+
+Briggeman                  Expires 10 May 2027                  [Page 6]
+
+Internet-Draft               ai-systems.txt                November 2026
+
+
+    +===================+==========+=================================+
+    | Field             | Cards    | Description                     |
+    +===================+==========+=================================+
+    | AISystems-Version | exactly  | Version of this specification   |
+    |                   | 1,       | the file conforms to.  This     |
+    |                   | REQUIRED | document describes version 0.2; |
+    |                   |          | files declaring 0.1 remain      |
+    |                   |          | valid under 0.2 tooling.        |
+    +-------------------+----------+---------------------------------+
+    | Publisher         | exactly  | The organisation making the     |
+    |                   | 1,       | declaration.                    |
+    |                   | REQUIRED |                                 |
+    +-------------------+----------+---------------------------------+
+    | Canonical         | 1+,      | The URL(s) of this file.  A     |
+    |                   | REQUIRED | validator MUST warn or distrust |
+    |                   |          | if the fetched URL is not       |
+    |                   |          | listed (mirrors [RFC9116]       |
+    |                   |          | practice).                      |
+    +-------------------+----------+---------------------------------+
+    | Contact           | 1+,      | URI (mailto or https) for       |
+    |                   | REQUIRED | corrections and disputes about  |
+    |                   |          | this file.  Order denotes       |
+    |                   |          | preference.                     |
+    +-------------------+----------+---------------------------------+
+    | Expires           | exactly  | RFC 3339 timestamp after which  |
+    |                   | 1,       | the contents MUST be treated as |
+    |                   | REQUIRED | stale.  MUST be less than one   |
+    |                   |          | year after publication; 90 days |
+    |                   |          | is RECOMMENDED for frontier     |
+    |                   |          | developers.                     |
+    +-------------------+----------+---------------------------------+
+    | Signature         | exactly  | URL of the detached signature   |
+    |                   | 1,       | for this exact file             |
+    |                   | REQUIRED | (Section 10).                   |
+    +-------------------+----------+---------------------------------+
+    | Systems-Index     | 0-1      | URL of the JSON mirror.         |
+    +-------------------+----------+---------------------------------+
+    | Policy            | 0-1      | URL of the publisher's          |
+    |                   |          | disclosure or transparency      |
+    |                   |          | policy.                         |
+    +-------------------+----------+---------------------------------+
+    | Previous-Version  | 0-1      | URL of the immediately          |
+    |                   |          | preceding version of this file, |
+    |                   |          | to make diffs discoverable.     |
+    +-------------------+----------+---------------------------------+
+
+                          Table 2: Header fields
+
+
+
+
+Briggeman                  Expires 10 May 2027                  [Page 7]
+
+Internet-Draft               ai-systems.txt                November 2026
+
+
+6.  System Stanza Fields
+
+   Each stanza declares one system.
+
+   +======================+===========+================================+
+   | Field                | Cards     | Description                    |
+   +======================+===========+================================+
+   | System               | exactly   | Canonical name of the          |
+   |                      | 1,        | system.  Unique within the     |
+   |                      | REQUIRED  | file.                          |
+   +----------------------+-----------+--------------------------------+
+   | Version              | exactly   | Version or build               |
+   |                      | 1,        | identifier.  Any change to     |
+   |                      | REQUIRED  | a served system that could     |
+   |                      |           | alter capabilities MUST        |
+   |                      |           | produce a new Version          |
+   |                      |           | value in an updated file.      |
+   +----------------------+-----------+--------------------------------+
+   | Status               | exactly   | One of: research, preview,     |
+   |                      | 1,        | general-availability,          |
+   |                      | REQUIRED  | deprecated, retired.           |
+   +----------------------+-----------+--------------------------------+
+   | Released             | exactly   | Date the system first          |
+   |                      | 1,        | became available to anyone     |
+   |                      | REQUIRED  | outside the publisher          |
+   |                      |           | (including paid or closed      |
+   |                      |           | previews; say so in a          |
+   |                      |           | comment).                      |
+   +----------------------+-----------+--------------------------------+
+   | Predecessor          | 0-1       | Name of the previous           |
+   |                      |           | system in the line.            |
+   +----------------------+-----------+--------------------------------+
+   | Modalities           | exactly   | Comma-separated list,          |
+   |                      | 1,        | e.g., "text-in, image-in,      |
+   |                      | REQUIRED  | text-out, tool-use, code-      |
+   |                      |           | execution".                    |
+   +----------------------+-----------+--------------------------------+
+   | Access               | exactly   | One or more of: api, open-     |
+   |                      | 1,        | weights, open-source,          |
+   |                      | REQUIRED  | internal-only.  For open       |
+   |                      |           | weights, include the           |
+   |                      |           | licence in parentheses.        |
+   +----------------------+-----------+--------------------------------+
+   | Registry-ID          | 0+        | External identities,           |
+   |                      |           | prefixed: "epoch:",            |
+   |                      |           | "openrouter:",                 |
+   |                      |           | "huggingface:", "api-          |
+   |                      |           | model:", or another prefix     |
+
+
+
+Briggeman                  Expires 10 May 2027                  [Page 8]
+
+Internet-Draft               ai-systems.txt                November 2026
+
+
+   |                      |           | registered per Section 18.     |
+   +----------------------+-----------+--------------------------------+
+   | Endpoint /           | 0+        | Where the system can           |
+   | Repository           |           | actually be reached.           |
+   +----------------------+-----------+--------------------------------+
+   | Context-Window       | 0-1       | Maximum context, in            |
+   |                      |           | tokens, as served - not as     |
+   |                      |           | designed or announced.         |
+   +----------------------+-----------+--------------------------------+
+   | Parameters           | exactly   | Parameter count, or the        |
+   |                      | 1,        | literal value                  |
+   |                      | REQUIRED* | "Undisclosed" (Section 8).     |
+   +----------------------+-----------+--------------------------------+
+   | Training-Compute     | exactly   | Total training compute in      |
+   |                      | 1,        | FLOP, with basis in            |
+   |                      | REQUIRED* | parentheses where              |
+   |                      |           | estimated, or                  |
+   |                      |           | "Undisclosed".                 |
+   +----------------------+-----------+--------------------------------+
+   | Training-Data-Cutoff | 0-1       | Date, or "Undisclosed".        |
+   +----------------------+-----------+--------------------------------+
+   | System-Card          | 0-1       | URL of the system or model     |
+   |                      |           | card.                          |
+   +----------------------+-----------+--------------------------------+
+   | Known-Limitations    | 0-1       | URL or short plain-text        |
+   |                      |           | summary.                       |
+   +----------------------+-----------+--------------------------------+
+   | Autonomy-Horizon-50  | 0-1       | Shorthand for the system's     |
+   |                      |           | 50% long-horizon task-         |
+   |                      |           | completion figure; if          |
+   |                      |           | present, it MUST also          |
+   |                      |           | appear as a full               |
+   |                      |           | evaluation block with          |
+   |                      |           | evaluator and conditions.      |
+   +----------------------+-----------+--------------------------------+
+   | Safety-Evaluation    | 0+        | One line per external          |
+   |                      |           | safety evaluation:             |
+   |                      |           | evaluator, scope, date,        |
+   |                      |           | report URL.                    |
+   +----------------------+-----------+--------------------------------+
+
+                       Table 3: System stanza fields
+
+7.  Evaluation Blocks
+
+   Each evaluation block describes one measured claim.
+
+
+
+
+
+Briggeman                  Expires 10 May 2027                  [Page 9]
+
+Internet-Draft               ai-systems.txt                November 2026
+
+
+   +=============+==========+=========================================+
+   | Field       | Cards    | Description                             |
+   +=============+==========+=========================================+
+   | Evaluation  | block    | Benchmark name and version or release   |
+   |             | start,   | (e.g., "SWE-bench Verified (2026-01     |
+   |             | REQUIRED | release)", "METR Time Horizon 1.1").    |
+   +-------------+----------+-----------------------------------------+
+   | Evaluator   | REQUIRED | Who ran it.  MUST include the word      |
+   |             |          | "independent" in parentheses if the     |
+   |             |          | evaluator is organisationally           |
+   |             |          | independent of the publisher.           |
+   +-------------+----------+-----------------------------------------+
+   | Score       | REQUIRED | The result, with units (e.g., "74.2%",  |
+   |             |          | "11.5 hours", "ECI 158").               |
+   +-------------+----------+-----------------------------------------+
+   | Conditions  | REQUIRED | Material conditions: agent scaffold or  |
+   |             | for      | harness, reasoning effort, tool access, |
+   |             | MEASURED | attempt limits - whatever a competent   |
+   |             | and      | replicator would need.  A score without |
+   |             | ATTESTED | conditions is not comparable, and       |
+   |             |          | validators MUST flag it.                |
+   +-------------+----------+-----------------------------------------+
+   | Measured    | REQUIRED | Date the measurement was completed.     |
+   +-------------+----------+-----------------------------------------+
+   | Evidence    | REQUIRED | URL of the report, dashboard entry, or  |
+   |             |          | results file.                           |
+   +-------------+----------+-----------------------------------------+
+   | Attestation | REQUIRED | "sha256:<hex>" of the evaluator's       |
+   |             | for      | report, or a reference to the           |
+   |             | ATTESTED | evaluator's countersignature.           |
+   +-------------+----------+-----------------------------------------+
+   | Tier        | REQUIRED | ATTESTED, MEASURED, or DECLARED.        |
+   |             |          | Validators recompute the tier from the  |
+   |             |          | block's contents and MUST downgrade a   |
+   |             |          | block whose stated tier its contents do |
+   |             |          | not support (for example, ATTESTED with |
+   |             |          | no Attestation).                        |
+   +-------------+----------+-----------------------------------------+
+
+                     Table 4: Evaluation block fields
+
+
+
+
+
+
+
+
+
+
+
+Briggeman                  Expires 10 May 2027                 [Page 10]
+
+Internet-Draft               ai-systems.txt                November 2026
+
+
+8.  The Undisclosed Rule
+
+   For Parameters and Training-Compute (and, by extension, any field a
+   future version makes required-but-optional-to-answer), a publisher
+   MUST either give a value or write "Undisclosed".  Omitting the field
+   makes the file invalid.  Rationale: silence is ambiguous (forgotten?
+   withheld? not applicable?); an explicit "Undisclosed" is a countable,
+   comparable fact - it is what transparency indexes currently have to
+   excavate by hand.
+
+9.  Freshness, Versioning, and Change
+
+   *  A file is current until its Expires timestamp; after that,
+      validators MUST label every claim in it STALE.
+
+   *  Publishers SHOULD update the file in the same release process as
+      the system itself; a system that is served but absent from a
+      current file is, for consumers of this specification, UNDECLARED.
+
+   *  Each published version SHOULD remain fetchable (via Previous-
+      Version chains or dated URLs) so diffs are auditable.  A monitor's
+      diff of two versions - systems added or removed, scores changed,
+      fields edited - is the authoritative answer to "what changed and
+      when", ending the "quietly updated model" class of rumor.
+
+10.  Signing
+
+   *  The file MUST name a detached signature (the Signature header)
+      covering the exact bytes of the file as served.  OpenPGP (as in
+      [RFC9116] practice) or JWS are both acceptable; the signature
+      file's format is self-describing.
+
+   *  Validators MUST report one of: signature-verified, signature-
+      present-unverified, signature-missing, or signature-invalid.  Only
+      signature-verified supports treating the file as authentically the
+      publisher's.
+
+   *  Signatures cover the served bytes; publishers MUST NOT rely on
+      whitespace-insensitive verification.
+
+11.  JSON Mirror
+
+   The JSON mirror carries identical content for machine consumers.
+   Field names are lower-snake-case; quantities are numbers; dates are
+   strings as in Section 4.2.  An abridged JSON Schema (draft 2020-12)
+   for the mirror is given in Appendix B.  On any conflict between the
+   text file and the mirror, the signed text file wins.
+
+
+
+
+Briggeman                  Expires 10 May 2027                 [Page 11]
+
+Internet-Draft               ai-systems.txt                November 2026
+
+
+12.  Validator Behaviour
+
+   A conforming validator, given a file (path or URL), MUST be able to:
+
+   1.  _Authenticate_: fetch over HTTPS; check Canonical against the
+       fetch URL; check the signature state (Section 10).
+
+   2.  _Check freshness_: parse Expires; label the file current or
+       STALE.
+
+   3.  _Lint_: required header and stanza fields present; required-but-
+       optional fields explicitly valued or "Undisclosed"; Status in
+       vocabulary; dates parse; every evaluation block complete for its
+       stated tier; tiers recomputed and downgraded where unsupported.
+
+   4.  _Cross-check_: for each system, look up the reference registry
+       (the Epoch AI models dataset [EPOCH] is the reference registry
+       for this draft) and report IN-REGISTRY, NOT-IN-REGISTRY, or
+       CONTRADICTED.  For each MEASURED or ATTESTED claim, compare
+       against the evaluator's published data where a machine-readable
+       source exists, and verify the Evidence URL resolves.
+
+   5.  _Rumor sweep_: given a list of names circulating publicly, report
+       each as declared in the file, or as "UNDECLARED - rumor tier" if
+       absent.  Validators MUST NOT import rumored systems into the
+       declared set.
+
+   6.  _Diff_: given a previous version, report added and removed
+       systems and every changed field and score.
+
+   7.  _Report_: emit a machine-readable report (JSON) containing, per
+       system and per claim, its tier or verdict, all errors and
+       warnings, and the file's SHA-256 hash.  Human-readable renderings
+       SHOULD be offered.  Verdict vocabulary: VALID, VALID-WITH-
+       WARNINGS, INVALID, plus per-claim ATTESTED / MEASURED / DECLARED
+       / CONTRADICTED / STALE / EVIDENCE-UNREACHABLE and per-system
+       registry verdicts as in item 4.
+
+12.1.  Comparison Tolerances
+
+   Exact equality is too strict for reconstructed registries.  Reference
+   tolerances: release dates differing by at most 31 days are a warning,
+   not a contradiction; parameter counts differing by more than a factor
+   of 2, and training compute differing by more than a factor of 3
+   (registries estimate compute), are contradictions.  An evaluator's
+   own republication of a score supersedes the file's transcription of
+   it.
+
+
+
+
+Briggeman                  Expires 10 May 2027                 [Page 12]
+
+Internet-Draft               ai-systems.txt                November 2026
+
+
+13.  Conformance Levels
+
+   Publisher levels:
+
+   Level 1 - Declared  Valid file, all required fields, signature named.
+
+   Level 2 - Measured  At least one MEASURED evaluation per generally-
+      available system, JSON mirror published, Registry-ID values cross-
+      linked.
+
+   Level 3 - Attested  ATTESTED evaluations from at least one
+      independent evaluator for frontier systems, Previous-Version chain
+      maintained, expiry of 90 days or less.
+
+   Validator conformance: implements all of Section 12 and publishes its
+   test results against the reference test suite (valid, expired,
+   broken, contradicted, and rumor cases).
+
+14.  Security Considerations
+
+   *  _Dishonest declarations._ The format cannot prevent lying.  It
+      converts lies from deniable rumors into signed, timestamped,
+      hashed statements that independent evaluators can contradict on
+      the record - permanently attributable.  That is the same bargain
+      that makes [RFC9116] files and financial filings useful.
+
+   *  _Spoofed files._ Files on lookalike domains are not the
+      publisher's.  Canonical checking plus signature verification are
+      the defence; consumers MUST NOT trust an unsigned or canonical-
+      mismatched file.
+
+   *  _Stale mirrors and caches._ Expires bounds the damage; validators
+      MUST surface staleness rather than silently serving old claims.
+
+   *  _Benchmark gaming._ Mandatory Conditions and versioned benchmarks
+      make selective reporting visible: a publisher that reports only
+      flattering benchmarks will show conspicuously fewer evaluation
+      blocks than its peers - itself a signal.
+
+   *  _Signature stripping and downgrade._ A mirror that drops the
+      signature reduces every claim to at most DECLARED; validators MUST
+      reflect that.
+
+   *  _Denial by omission._ A publisher can omit a secret system.  The
+      file makes that omission visible as a state (UNDECLARED) once the
+      system is rumored, rather than leaving the rumor unanswerable
+      either way.
+
+
+
+
+Briggeman                  Expires 10 May 2027                 [Page 13]
+
+Internet-Draft               ai-systems.txt                November 2026
+
+
+15.  Privacy Considerations
+
+   The file contains only public, organisational information.  Personal
+   data SHOULD NOT appear beyond role-based contacts (as in [RFC9116]
+   practice).  Nothing in this specification requires disclosing trade
+   secrets: the Undisclosed rule exists precisely so a publisher can be
+   complete about the shape of its disclosure without revealing
+   protected values.
+
+16.  Adoption and Relationship to Existing Work
+
+   Adoption proceeds in layers: makers publish Level 1 files (cost: one
+   static file in the release checklist); evaluators publish results in
+   linkable, hashable reports so blocks can be ATTESTED, and may
+   countersign; registries and monitors ingest files as a first-party
+   source; buyers and journalists cite tiers rather than screenshots.
+
+   *  [RFC9309] (robots.txt): the directional opposite and the adoption
+      template - voluntary, trivial, publisher-served.
+
+   *  [RFC9116] (security.txt): the structural template - well-known
+      location, "Field: value" lines, required Contact and Expires,
+      signed files, an IANA field registry.
+
+   *  "ai.txt" proposals [AI-TXT]: content permissions for publishers;
+      complementary, and the reason for this file's distinct name.
+
+   *  llms.txt: a content index for agents; unrelated purpose.
+
+   *  Model cards and system cards: long-form companions; linked, not
+      replaced.
+
+   *  Agent cards (A2A) and MCP server cards: runtime interface
+      descriptions; a complementary layer.
+
+   *  Epoch AI, METR, Artificial Analysis, and the Stanford AI Index:
+      the independent reconstruction layer this file feeds and is
+      checked against; adoption of this specification makes their work
+      faster, not obsolete.
+
+17.  Open Questions for Reviewers
+
+   1.  Should ATTESTED require the evaluator's countersignature, or is a
+       report hash sufficient for version 1?
+
+   2.  Should Expires for frontier developers be a MUST at 90 days or
+       less, rather than a recommendation?
+
+
+
+
+Briggeman                  Expires 10 May 2027                 [Page 14]
+
+Internet-Draft               ai-systems.txt                November 2026
+
+
+   3.  Is a separate incident-contact field needed, or does Contact
+       suffice?
+
+   4.  Should energy or water use per training run be a required-but-
+       optional field in version 1, or deferred to the field registry?
+
+   5.  Who should host the field registry and test suite: an IETF path,
+       or a community registry first?
+
+18.  IANA Considerations
+
+18.1.  Well-Known URI Registration
+
+   This document requests registration of the following values in the
+   "Well-Known URIs" registry [RFC8615]:
+
+   URI suffix: ai-systems.txt
+   Change controller: Peter Briggeman (pbriggeman@gmail.com)
+   Specification document(s): [this document]
+   Status: provisional
+   Related information: The reference implementation, validator, and
+   test suite are maintained at
+   https://github.com/pbriggeman/ai-systems-txt
+
+   URI suffix: ai-systems.json
+   Change controller: Peter Briggeman (pbriggeman@gmail.com)
+   Specification document(s): [this document], Section "JSON Mirror"
+   Status: provisional
+   Related information: JSON mirror of ai-systems.txt; on any conflict
+   the signed text file prevails.
+
+18.2.  Field-Name Registry
+
+   This document also suggests a future field-name registry (name,
+   cardinality, status, reference), modelled on the registry established
+   for [RFC9116], so that new fields (for example, energy use or
+   incident contacts) can be added without breaking parsers; parsers
+   already MUST ignore unknown fields.  A registry-prefix registry for
+   Registry-ID values is suggested on the same basis.  The initial
+   contents of the field-name registry are the fields defined in
+   Section 5, Section 6, and Section 7.
+
+19.  References
+
+19.1.  Normative References
+
+
+
+
+
+
+Briggeman                  Expires 10 May 2027                 [Page 15]
+
+Internet-Draft               ai-systems.txt                November 2026
+
+
+   [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
+              Requirement Levels", BCP 14, RFC 2119, March 1997,
+              <https://www.rfc-editor.org/info/rfc2119>.
+
+   [RFC3339]  Klyne, G. and C. Newman, "Date and Time on the Internet:
+              Timestamps", RFC 3339, July 2002,
+              <https://www.rfc-editor.org/info/rfc3339>.
+
+   [RFC5234]  Crocker, D. and P. Overell, "Augmented BNF for Syntax
+              Specifications: ABNF", RFC 5234, January 2008,
+              <https://www.rfc-editor.org/info/rfc5234>.
+
+   [RFC8174]  Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC
+              2119 Key Words", BCP 14, RFC 8174, May 2017,
+              <https://www.rfc-editor.org/info/rfc8174>.
+
+   [RFC8615]  Nottingham, M., "Well-Known Uniform Resource Identifiers
+              (URIs)", RFC 8615, May 2019,
+              <https://www.rfc-editor.org/info/rfc8615>.
+
+19.2.  Informative References
+
+   [AI-TXT]   Car, L., "The ai.txt File: AI Usage Preferences and
+              Licensing", Work in Progress, Internet-Draft, draft-car-
+              ai-txt-wellknown-00, June 2026,
+              <https://datatracker.ietf.org/doc/draft-car-ai-txt-
+              wellknown-00/>.
+
+   [EPOCH]    Epoch AI, "Epoch AI Data: AI Models Dataset and
+              Benchmarking Hub", 2026, <https://epoch.ai/data>.
+
+   [REFIMPL]  Briggeman, P., "ai-systems.txt: Specification, Reference
+              Validator, and Test Suite", 2026,
+              <https://github.com/pbriggeman/ai-systems-txt>.
+
+   [RFC9116]  Foudil, E. and Y. Shafranovich, "A File Format to Aid in
+              Security Vulnerability Disclosure", RFC 9116, April 2022,
+              <https://www.rfc-editor.org/info/rfc9116>.
+
+   [RFC9309]  Kessler, M., Zawinski, H., and S. Illyes, "Robots
+              Exclusion Protocol", RFC 9309, September 2022,
+              <https://www.rfc-editor.org/info/rfc9309>.
+
+Appendix A.  Worked Example
+
+   The following complete file is fictional.  Its rumored successor
+   system ("Example-10") appears nowhere in it and is therefore, to any
+   validator, UNDECLARED.
+
+
+
+Briggeman                  Expires 10 May 2027                 [Page 16]
+
+Internet-Draft               ai-systems.txt                November 2026
+
+
+   # ai-systems.txt - EXAMPLE ONLY (fictional maker, fictional system)
+   AISystems-Version: 0.2
+   Publisher: Example AI, Inc.
+   Canonical: https://example-ai.com/.well-known/ai-systems.txt
+   Contact: mailto:ai-systems@example-ai.com
+   Expires: 2027-01-29T00:00:00Z
+   Signature: https://example-ai.com/.well-known/ai-systems.txt.sig
+   Systems-Index: https://example-ai.com/.well-known/ai-systems.json
+   Policy: https://example-ai.com/transparency
+
+   System: Example-9
+   Version: 9.2 (build 2026-09-28)
+   Status: general-availability
+   Released: 2026-09-30
+   Predecessor: Example-8.5
+   Modalities: text-in, image-in, text-out, tool-use
+   Access: api
+   Registry-ID: epoch:example-9
+   Registry-ID: openrouter:example-ai/example-9
+   Endpoint: https://api.example-ai.com/v1
+   Context-Window: 1000000
+   Parameters: Undisclosed
+   Training-Compute: Undisclosed
+   Training-Data-Cutoff: 2026-03-31
+   System-Card: https://example-ai.com/system-cards/example-9
+
+   Evaluation: Epoch Capabilities Index
+   Evaluator: Epoch AI (independent)
+   Score: ECI 158
+   Conditions: hub default, all component benchmarks as published
+   Measured: 2026-10-12
+   Evidence: https://epoch.ai/benchmarks
+   Tier: MEASURED
+
+   Evaluation: METR Time Horizon 1.1 (50% horizon)
+   Evaluator: METR (independent)
+   Score: 11.5 hours
+   Conditions: scaffold=triframe, private task suite
+   Measured: 2026-10-03
+   Evidence: https://metr.org/time-horizons
+   Attestation: sha256:00000000000000000000000000000000000000000000
+                000000000000000000000000
+   Tier: ATTESTED
+
+   Evaluation: SWE-bench Verified (2026-01 release)
+   Evaluator: Example AI (self)
+   Score: 74.2%
+   Conditions: scaffold=standard-agent, effort=high,
+
+
+
+Briggeman                  Expires 10 May 2027                 [Page 17]
+
+Internet-Draft               ai-systems.txt                November 2026
+
+
+               tools=terminal+editor
+   Measured: 2026-09-14
+   Evidence: https://example-ai.com/evals/example-9-swebench
+   Tier: DECLARED
+
+   Safety-Evaluation: UK AISI pre-deployment eval, autonomy + cyber
+     scope, 2026-09-20, https://example-ai.com/safety/aisi-2026-09
+
+Appendix B.  JSON Schema for the JSON Mirror (Abridged)
+
+   {
+     "$schema": "https://json-schema.org/draft/2020-12/schema",
+     "title": "ai-systems.json",
+     "type": "object",
+     "required": ["ai_systems_version", "header", "systems"],
+     "properties": {
+       "ai_systems_version": {"type": "string"},
+       "header": {
+         "type": "object",
+         "required": ["Publisher", "Canonical", "Contact",
+                      "Expires", "Signature"]
+       },
+       "systems": {
+         "type": "array",
+         "items": {
+           "type": "object",
+           "required": ["System", "Version", "Status", "Released",
+                        "Modalities", "Access", "Parameters",
+                        "Training-Compute", "evaluations"],
+           "properties": {
+             "Status": {"enum": ["research", "preview",
+                        "general-availability", "deprecated",
+                        "retired"]},
+             "Parameters": {"type": ["number", "string"]},
+             "Training-Compute": {"type": ["number", "string"]}
+           }
+         }
+       }
+     }
+   }
+
+   Note: "Parameters" and "Training-Compute" accept a number or the
+   string "Undisclosed".  The full schema is maintained with the
+   reference implementation [REFIMPL].
+
+
+
+
+
+
+
+Briggeman                  Expires 10 May 2027                 [Page 18]
+
+Internet-Draft               ai-systems.txt                November 2026
+
+
+Appendix C.  Acknowledgements
+
+   The author thanks Jevex for editorial and implementation assistance
+   with this specification, the reference validator, and the test suite,
+   and the maintainers of the security.txt and robots.txt
+   specifications, whose adoption paths this document deliberately
+   follows.
+
+Author's Address
+
+   Peter Briggeman
+   United States of America
+   Email: pbriggeman@gmail.com
+   URI:   https://github.com/pbriggeman/ai-systems-txt
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Briggeman                  Expires 10 May 2027                 [Page 19]

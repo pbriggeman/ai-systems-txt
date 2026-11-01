@@ -1,0 +1,41 @@
+TO: wellknown-uri-review@ietf.org
+SUBJECT: Registration request: ai-systems.txt and ai-systems.json (provisional)
+STATUS: DRAFT — prepared for Peter Briggeman to review and send from his own mailbox
+
+Hello,
+
+I request provisional registration of two suffixes in the Well-Known URIs
+registry, per RFC 8615 Section 3.1.
+
+--- Entry 1 ---
+URI suffix: ai-systems.txt
+Change controller: Peter Briggeman (pbriggeman@gmail.com)
+Specification document(s): draft-briggeman-ai-systems-00,
+  "ai-systems.txt: A Well-Known File for Declaring AI Systems and Their
+  Measured Capabilities" (Internet-Draft, Independent Stream intended).
+  Public draft also at https://github.com/pbriggeman/ai-systems-txt
+Status: provisional
+Related information: The file is a signed, expiring declaration by an AI
+  system maker of its released systems and their measured capabilities,
+  with per-claim provenance tiers. A reference validator, test suite, and
+  a working consumer (a provenance-graded finder) accompany the draft.
+
+--- Entry 2 ---
+URI suffix: ai-systems.json
+Change controller: Peter Briggeman (pbriggeman@gmail.com)
+Specification document(s): draft-briggeman-ai-systems-00, section
+  "JSON Mirror"
+Status: provisional
+Related information: JSON mirror of ai-systems.txt with identical
+  content; on any conflict, the signed text file prevails.
+
+The names follow the established pattern of the existing registrations
+"security.txt" and "robots.txt"-adjacent well-known files: the suffix
+includes the file extension as served. The specification document is
+stable at the URI above and under revision control; the change
+controller is the document author.
+
+Thank you for your review. I welcome the designated experts' feedback,
+including on the open questions listed in the draft.
+
+Peter Briggeman

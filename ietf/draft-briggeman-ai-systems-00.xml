@@ -1,0 +1,730 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE rfc [
+  <!ENTITY nbsp    "&#160;">
+  <!ENTITY zwsp   "&#8203;">
+  <!ENTITY nbhy   "&#8209;">
+  <!ENTITY wj     "&#8288;">
+]>
+<rfc xmlns:xi="http://www.w3.org/2001/XInclude"
+     version="3"
+     ipr="trust200902"
+     category="info"
+     submissionType="independent"
+     docName="draft-briggeman-ai-systems-00"
+     xml:lang="en"
+     tocInclude="true"
+     sortRefs="true"
+     symRefs="true">
+  <front>
+    <title abbrev="ai-systems.txt">ai-systems.txt: A Well-Known File for Declaring AI Systems and Their Measured Capabilities</title>
+    <author fullname="Peter Briggeman" initials="P." surname="Briggeman">
+      <organization></organization>
+      <address>
+        <postal>
+          <country>United States of America</country>
+        </postal>
+        <email>pbriggeman@gmail.com</email>
+        <uri>https://github.com/pbriggeman/ai-systems-txt</uri>
+      </address>
+    </author>
+    <date year="2026" month="November"/>
+    <area>Applications and Real-Time Area</area>
+    <keyword>ai</keyword>
+    <keyword>well-known uri</keyword>
+    <keyword>capabilities</keyword>
+    <keyword>provenance</keyword>
+    <keyword>transparency</keyword>
+    <abstract>
+      <t>This document defines "ai-systems.txt", a plain-text file that an
+      organisation that builds or deploys artificial intelligence (AI) systems
+      publishes at a well-known location on its own domain. The file declares,
+      in machine-readable and human-readable form, which AI systems the
+      organisation has released, what their measured capabilities are, who
+      measured them, under what conditions, and where the evidence lives.
+      Every capability claim carries a provenance tier (ATTESTED, MEASURED, or
+      DECLARED); anything absent from a valid, unexpired file is UNDECLARED by
+      definition. The file is signed and expiring, so claims are attributable,
+      timestamped, and falsifiable. robots.txt tells machines what they may
+      take from a publisher; ai-systems.txt is the reverse: it tells anyone
+      what a maker has built, in a form designed to be checked rather than
+      believed.</t>
+    </abstract>
+  </front>
+  <middle>
+    <section anchor="intro">
+      <name>Introduction</name>
+      <t>Today, information about what AI systems exist and what they can do
+      reaches the public as launch marketing, cropped benchmark screenshots,
+      leaks, and social-media claims. Independent parties (for example, Epoch
+      AI, METR, Artificial Analysis, and the Stanford AI Index) reconstruct
+      the truth after the fact. Concretely:</t>
+      <ul spacing="normal">
+        <li>There is no canonical, maker-maintained record of what AI systems
+        exist. The closest registry is a third-party reconstruction.</li>
+        <li>Capability claims are routinely published without the conditions
+        that make them comparable (benchmark version, agent scaffold,
+        reasoning effort, tool access, date).</li>
+        <li>Systems are silently updated, renamed, and retired; yesterday's
+        claim attaches to today's different system.</li>
+        <li>Rumor fills every gap. A rumored system or score can be neither
+        confirmed nor denied against any authoritative artefact, so rumor and
+        fact circulate with equal weight.</li>
+      </ul>
+      <t>This document defines a declaration format that addresses those
+      problems at the source. An ai-systems.txt file is:</t>
+      <ul spacing="normal">
+        <li>A <em>declaration</em>: the maker's own signed statement,
+        attributable and timestamped.</li>
+        <li>A <em>claim index</em>: every capability claim carries its
+        provenance tier (<xref target="tiers"/>), so a reader can grade it
+        without further research.</li>
+        <li>A <em>feed</em>: monitors can fetch, hash, and diff the file on a
+        schedule and report precisely what changed.</li>
+      </ul>
+      <t>The file is not a trust mechanism by itself: a declaration can be
+      wrong or dishonest, and the format's defence is falsifiability
+      (<xref target="security"/>), not faith. It is not a content-permissions
+      file: training consent, crawling rules, and AI usage preferences for a
+      publisher's content are the subject of <xref target="RFC9309"/>, the
+      IETF aipref work, and the existing "ai.txt" proposals
+      <xref target="AI-TXT"/>; this file governs claims about a maker's
+      <em>systems</em>, and its name was chosen to avoid colliding with those
+      proposals. It is not a model card or system card; those remain the right
+      place for long-form discussion, and this file links to them. It is not
+      an agent interface description; agent cards describe how to call an
+      agent, while this file describes what a system is and can do, including
+      systems with no public interface.</t>
+      <section anchor="conventions">
+        <name>Conventions and Terminology</name>
+        <t>The key words "<bcp14>MUST</bcp14>", "<bcp14>MUST NOT</bcp14>",
+        "<bcp14>REQUIRED</bcp14>", "<bcp14>SHALL</bcp14>",
+        "<bcp14>SHALL NOT</bcp14>", "<bcp14>SHOULD</bcp14>",
+        "<bcp14>SHOULD NOT</bcp14>", "<bcp14>RECOMMENDED</bcp14>",
+        "<bcp14>NOT RECOMMENDED</bcp14>", "<bcp14>MAY</bcp14>", and
+        "<bcp14>OPTIONAL</bcp14>" in this document are to be interpreted as
+        described in BCP 14 <xref target="RFC2119"/> <xref target="RFC8174"/>
+        when, and only when, they appear in all capitals, as shown here.</t>
+        <t>Grammar is given in Augmented Backus-Naur Form (ABNF)
+        <xref target="RFC5234"/>. The terms <em>publisher</em> (the
+        organisation making the declaration), <em>system</em> (an AI system
+        declared in the file), <em>evaluator</em> (the party that produced a
+        measurement), and <em>validator</em> (software that checks a file per
+        <xref target="validator"/>) are used throughout.</t>
+      </section>
+    </section>
+    <section anchor="tiers">
+      <name>Provenance Tiers</name>
+      <t>Every statement about a system falls into exactly one of four tiers.
+      The file expresses the first three; the fourth is what a validator
+      concludes about everything else.</t>
+      <table anchor="tier-table">
+        <name>Provenance tiers</name>
+        <thead>
+          <tr><th align="left">Tier</th><th align="left">Meaning</th><th align="left">Requirement</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td align="left">ATTESTED</td>
+            <td align="left">An independent evaluator measured the claim and stands behind it in a checkable way.</td>
+            <td align="left">Evaluation block with a named independent evaluator, an evidence URL, and an Attestation value: the SHA-256 hash of the evaluator's report, or the evaluator's countersignature reference.</td>
+          </tr>
+          <tr>
+            <td align="left">MEASURED</td>
+            <td align="left">A named evaluator measured and published the claim, with method and date. The evaluator may be independent or the maker, and the block states which.</td>
+            <td align="left">Evaluation block with evaluator (marked independent if so), benchmark version, conditions, measured date, evidence URL.</td>
+          </tr>
+          <tr>
+            <td align="left">DECLARED</td>
+            <td align="left">The maker asserts the claim; no independent measurement is linked.</td>
+            <td align="left">Any field or evaluation block not meeting the tiers above. Believable, citable, unverified.</td>
+          </tr>
+          <tr>
+            <td align="left">UNDECLARED</td>
+            <td align="left">The system or capability does not appear in a valid, unexpired file at all.</td>
+            <td align="left">Concluded by validators. This is the rumor tier: by definition, nothing here has been stated on the record by the maker.</td>
+          </tr>
+        </tbody>
+      </table>
+      <t>Two derived verdicts complete the vocabulary:</t>
+      <dl>
+        <dt>CONTRADICTED</dt>
+        <dd>A claim in the file conflicts with the named evaluator's own
+        published data or with the registry, beyond the tolerances in
+        <xref target="tolerances"/>. A validator MUST surface both
+        values.</dd>
+        <dt>STALE</dt>
+        <dd>The claim appeared in a file whose Expires timestamp has passed.
+        Stale claims revert to unverified until the file is renewed.</dd>
+      </dl>
+    </section>
+    <section anchor="location">
+      <name>Location and Discovery</name>
+      <ol spacing="normal">
+        <li>The file MUST be served over HTTPS at
+        "https://&lt;domain&gt;/.well-known/ai-systems.txt" (well-known URIs
+        per <xref target="RFC8615"/>).</li>
+        <li>A JSON mirror with identical content SHOULD be served at
+        "https://&lt;domain&gt;/.well-known/ai-systems.json"
+        (<xref target="json"/>).</li>
+        <li>For compatibility, a maker MAY also serve the file at
+        "/ai-systems.txt"; the well-known location takes precedence on any
+        conflict.</li>
+        <li>A detached signature SHOULD be served at the file URL plus ".sig"
+        (<xref target="signing"/>).</li>
+        <li>Discovery hints (optional; any one suffices): an HTTP response
+        header 'Link: &lt;/.well-known/ai-systems.txt&gt;; rel="ai-systems";
+        type="text/plain"', or a comment line in the maker's robots.txt:
+        "# AI-Systems: https://&lt;domain&gt;/.well-known/ai-systems.txt".</li>
+        <li>The file applies to the domain it is served from. A maker with
+        several domains serves one file per domain, or identical files whose
+        Canonical field lists each domain's URL.</li>
+        <li>Media types: "text/plain; charset=utf-8" for the file;
+        "application/json" for the mirror.</li>
+      </ol>
+    </section>
+    <section anchor="format">
+      <name>File Format</name>
+      <section anchor="format-general">
+        <name>General Rules</name>
+        <ul spacing="normal">
+          <li>The file is UTF-8 plain text. Lines are "Field-Name: value".
+          Field names are case-insensitive ASCII; values are case-sensitive
+          unless a field definition says otherwise.</li>
+          <li>Lines beginning with "#" are comments. Blank lines are ignored.
+          Parsers MUST ignore fields they do not recognise (forward
+          compatibility) and MUST NOT fail on them.</li>
+          <li>The file has two parts: one header block (fields before the
+          first "System" line), then one stanza per system. A stanza continues
+          until the next "System" line or end of file.</li>
+          <li>An evaluation block begins with an "Evaluation:" line inside a
+          stanza; the evaluation-scoped fields that follow belong to it until
+          the next "Evaluation:" line or a non-evaluation field.</li>
+          <li>Repeatable fields MAY appear multiple times; the order of
+          "Contact" and "Registry-ID" lines denotes preference and
+          canonical-first, respectively.</li>
+        </ul>
+      </section>
+      <section anchor="format-values">
+        <name>Dates and Numbers</name>
+        <t>Dates are YYYY-MM-DD. Timestamps (Expires) are RFC 3339
+        <xref target="RFC3339"/> timestamps. Quantities SHOULD be given in
+        plain scientific or decimal notation parseable by machines (for
+        example, "4.05e11", "2.0e25"). Human suffixes ("405B") are permitted
+        in the text file, but the JSON mirror MUST use plain numbers.</t>
+      </section>
+      <section anchor="format-abnf">
+        <name>ABNF (Informative Summary)</name>
+        <sourcecode type="abnf"><![CDATA[file        = header *( stanza )
+header      = *( field-line / comment / blank )
+stanza      = system-line *( field-line / eval-block /
+                            comment / blank )
+system-line = "System:" SP value CRLF
+eval-block  = eval-line *( eval-field )
+eval-line   = "Evaluation:" SP value CRLF
+eval-field  = ("Evaluator" / "Score" / "Conditions" / "Measured" /
+               "Evidence" / "Attestation" / "Tier") ":" SP value CRLF
+field-line  = field-name ":" SP value CRLF
+comment     = "#" *( VCHAR ) CRLF]]></sourcecode>
+      </section>
+    </section>
+    <section anchor="header-fields">
+      <name>Header Fields</name>
+      <t>The header block describes the declaration as a whole. "Cards"
+      denotes cardinality.</t>
+      <table>
+        <name>Header fields</name>
+        <thead>
+          <tr><th align="left">Field</th><th align="left">Cards</th><th align="left">Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td align="left"><tt>AISystems-Version</tt></td><td align="left">exactly 1, REQUIRED</td><td align="left">Version of this specification the file conforms to. This document describes version 0.2; files declaring 0.1 remain valid under 0.2 tooling.</td></tr>
+          <tr><td align="left"><tt>Publisher</tt></td><td align="left">exactly 1, REQUIRED</td><td align="left">The organisation making the declaration.</td></tr>
+          <tr><td align="left"><tt>Canonical</tt></td><td align="left">1+, REQUIRED</td><td align="left">The URL(s) of this file. A validator MUST warn or distrust if the fetched URL is not listed (mirrors <xref target="RFC9116"/> practice).</td></tr>
+          <tr><td align="left"><tt>Contact</tt></td><td align="left">1+, REQUIRED</td><td align="left">URI (mailto or https) for corrections and disputes about this file. Order denotes preference.</td></tr>
+          <tr><td align="left"><tt>Expires</tt></td><td align="left">exactly 1, REQUIRED</td><td align="left">RFC 3339 timestamp after which the contents MUST be treated as stale. MUST be less than one year after publication; 90 days is RECOMMENDED for frontier developers.</td></tr>
+          <tr><td align="left"><tt>Signature</tt></td><td align="left">exactly 1, REQUIRED</td><td align="left">URL of the detached signature for this exact file (<xref target="signing"/>).</td></tr>
+          <tr><td align="left"><tt>Systems-Index</tt></td><td align="left">0-1</td><td align="left">URL of the JSON mirror.</td></tr>
+          <tr><td align="left"><tt>Policy</tt></td><td align="left">0-1</td><td align="left">URL of the publisher's disclosure or transparency policy.</td></tr>
+          <tr><td align="left"><tt>Previous-Version</tt></td><td align="left">0-1</td><td align="left">URL of the immediately preceding version of this file, to make diffs discoverable.</td></tr>
+        </tbody>
+      </table>
+    </section>
+    <section anchor="system-fields">
+      <name>System Stanza Fields</name>
+      <t>Each stanza declares one system.</t>
+      <table>
+        <name>System stanza fields</name>
+        <thead>
+          <tr><th align="left">Field</th><th align="left">Cards</th><th align="left">Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td align="left"><tt>System</tt></td><td align="left">exactly 1, REQUIRED</td><td align="left">Canonical name of the system. Unique within the file.</td></tr>
+          <tr><td align="left"><tt>Version</tt></td><td align="left">exactly 1, REQUIRED</td><td align="left">Version or build identifier. Any change to a served system that could alter capabilities MUST produce a new Version value in an updated file.</td></tr>
+          <tr><td align="left"><tt>Status</tt></td><td align="left">exactly 1, REQUIRED</td><td align="left">One of: research, preview, general-availability, deprecated, retired.</td></tr>
+          <tr><td align="left"><tt>Released</tt></td><td align="left">exactly 1, REQUIRED</td><td align="left">Date the system first became available to anyone outside the publisher (including paid or closed previews; say so in a comment).</td></tr>
+          <tr><td align="left"><tt>Predecessor</tt></td><td align="left">0-1</td><td align="left">Name of the previous system in the line.</td></tr>
+          <tr><td align="left"><tt>Modalities</tt></td><td align="left">exactly 1, REQUIRED</td><td align="left">Comma-separated list, e.g., "text-in, image-in, text-out, tool-use, code-execution".</td></tr>
+          <tr><td align="left"><tt>Access</tt></td><td align="left">exactly 1, REQUIRED</td><td align="left">One or more of: api, open-weights, open-source, internal-only. For open weights, include the licence in parentheses.</td></tr>
+          <tr><td align="left"><tt>Registry-ID</tt></td><td align="left">0+</td><td align="left">External identities, prefixed: "epoch:", "openrouter:", "huggingface:", "api-model:", or another prefix registered per <xref target="iana"/>.</td></tr>
+          <tr><td align="left"><tt>Endpoint</tt> / <tt>Repository</tt></td><td align="left">0+</td><td align="left">Where the system can actually be reached.</td></tr>
+          <tr><td align="left"><tt>Context-Window</tt></td><td align="left">0-1</td><td align="left">Maximum context, in tokens, as served - not as designed or announced.</td></tr>
+          <tr><td align="left"><tt>Parameters</tt></td><td align="left">exactly 1, REQUIRED*</td><td align="left">Parameter count, or the literal value "Undisclosed" (<xref target="undisclosed"/>).</td></tr>
+          <tr><td align="left"><tt>Training-Compute</tt></td><td align="left">exactly 1, REQUIRED*</td><td align="left">Total training compute in FLOP, with basis in parentheses where estimated, or "Undisclosed".</td></tr>
+          <tr><td align="left"><tt>Training-Data-Cutoff</tt></td><td align="left">0-1</td><td align="left">Date, or "Undisclosed".</td></tr>
+          <tr><td align="left"><tt>System-Card</tt></td><td align="left">0-1</td><td align="left">URL of the system or model card.</td></tr>
+          <tr><td align="left"><tt>Known-Limitations</tt></td><td align="left">0-1</td><td align="left">URL or short plain-text summary.</td></tr>
+          <tr><td align="left"><tt>Autonomy-Horizon-50</tt></td><td align="left">0-1</td><td align="left">Shorthand for the system's 50% long-horizon task-completion figure; if present, it MUST also appear as a full evaluation block with evaluator and conditions.</td></tr>
+          <tr><td align="left"><tt>Safety-Evaluation</tt></td><td align="left">0+</td><td align="left">One line per external safety evaluation: evaluator, scope, date, report URL.</td></tr>
+        </tbody>
+      </table>
+    </section>
+    <section anchor="eval-blocks">
+      <name>Evaluation Blocks</name>
+      <t>Each evaluation block describes one measured claim.</t>
+      <table>
+        <name>Evaluation block fields</name>
+        <thead>
+          <tr><th align="left">Field</th><th align="left">Cards</th><th align="left">Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td align="left"><tt>Evaluation</tt></td><td align="left">block start, REQUIRED</td><td align="left">Benchmark name and version or release (e.g., "SWE-bench Verified (2026-01 release)", "METR Time Horizon 1.1").</td></tr>
+          <tr><td align="left"><tt>Evaluator</tt></td><td align="left">REQUIRED</td><td align="left">Who ran it. MUST include the word "independent" in parentheses if the evaluator is organisationally independent of the publisher.</td></tr>
+          <tr><td align="left"><tt>Score</tt></td><td align="left">REQUIRED</td><td align="left">The result, with units (e.g., "74.2%", "11.5 hours", "ECI 158").</td></tr>
+          <tr><td align="left"><tt>Conditions</tt></td><td align="left">REQUIRED for MEASURED and ATTESTED</td><td align="left">Material conditions: agent scaffold or harness, reasoning effort, tool access, attempt limits - whatever a competent replicator would need. A score without conditions is not comparable, and validators MUST flag it.</td></tr>
+          <tr><td align="left"><tt>Measured</tt></td><td align="left">REQUIRED</td><td align="left">Date the measurement was completed.</td></tr>
+          <tr><td align="left"><tt>Evidence</tt></td><td align="left">REQUIRED</td><td align="left">URL of the report, dashboard entry, or results file.</td></tr>
+          <tr><td align="left"><tt>Attestation</tt></td><td align="left">REQUIRED for ATTESTED</td><td align="left">"sha256:&lt;hex&gt;" of the evaluator's report, or a reference to the evaluator's countersignature.</td></tr>
+          <tr><td align="left"><tt>Tier</tt></td><td align="left">REQUIRED</td><td align="left">ATTESTED, MEASURED, or DECLARED. Validators recompute the tier from the block's contents and MUST downgrade a block whose stated tier its contents do not support (for example, ATTESTED with no Attestation).</td></tr>
+        </tbody>
+      </table>
+    </section>
+    <section anchor="undisclosed">
+      <name>The Undisclosed Rule</name>
+      <t>For Parameters and Training-Compute (and, by extension, any field a
+      future version makes required-but-optional-to-answer), a publisher MUST
+      either give a value or write "Undisclosed". Omitting the field makes the
+      file invalid. Rationale: silence is ambiguous (forgotten? withheld? not
+      applicable?); an explicit "Undisclosed" is a countable, comparable fact
+      - it is what transparency indexes currently have to excavate by
+      hand.</t>
+    </section>
+    <section anchor="freshness">
+      <name>Freshness, Versioning, and Change</name>
+      <ul spacing="normal">
+        <li>A file is current until its Expires timestamp; after that,
+        validators MUST label every claim in it STALE.</li>
+        <li>Publishers SHOULD update the file in the same release process as
+        the system itself; a system that is served but absent from a current
+        file is, for consumers of this specification, UNDECLARED.</li>
+        <li>Each published version SHOULD remain fetchable (via
+        Previous-Version chains or dated URLs) so diffs are auditable. A
+        monitor's diff of two versions - systems added or removed, scores
+        changed, fields edited - is the authoritative answer to "what changed
+        and when", ending the "quietly updated model" class of rumor.</li>
+      </ul>
+    </section>
+    <section anchor="signing">
+      <name>Signing</name>
+      <ul spacing="normal">
+        <li>The file MUST name a detached signature (the Signature header)
+        covering the exact bytes of the file as served. OpenPGP (as in
+        <xref target="RFC9116"/> practice) or JWS are both acceptable; the
+        signature file's format is self-describing.</li>
+        <li>Validators MUST report one of: signature-verified,
+        signature-present-unverified, signature-missing, or
+        signature-invalid. Only signature-verified supports treating the file
+        as authentically the publisher's.</li>
+        <li>Signatures cover the served bytes; publishers MUST NOT rely on
+        whitespace-insensitive verification.</li>
+      </ul>
+    </section>
+    <section anchor="json">
+      <name>JSON Mirror</name>
+      <t>The JSON mirror carries identical content for machine consumers.
+      Field names are lower-snake-case; quantities are numbers; dates are
+      strings as in <xref target="format-values"/>. An abridged JSON Schema
+      (draft 2020-12) for the mirror is given in
+      <xref target="appendix-schema"/>. On any conflict between the text file
+      and the mirror, the signed text file wins.</t>
+    </section>
+    <section anchor="validator">
+      <name>Validator Behaviour</name>
+      <t>A conforming validator, given a file (path or URL), MUST be able
+      to:</t>
+      <ol spacing="normal">
+        <li><em>Authenticate</em>: fetch over HTTPS; check Canonical against
+        the fetch URL; check the signature state
+        (<xref target="signing"/>).</li>
+        <li><em>Check freshness</em>: parse Expires; label the file current
+        or STALE.</li>
+        <li><em>Lint</em>: required header and stanza fields present;
+        required-but-optional fields explicitly valued or "Undisclosed";
+        Status in vocabulary; dates parse; every evaluation block complete
+        for its stated tier; tiers recomputed and downgraded where
+        unsupported.</li>
+        <li><em>Cross-check</em>: for each system, look up the reference
+        registry (the Epoch AI models dataset <xref target="EPOCH"/> is the
+        reference registry for this draft) and report IN-REGISTRY, NOT-IN-REGISTRY, or CONTRADICTED.
+        For each MEASURED or ATTESTED claim, compare against the evaluator's
+        published data where a machine-readable source exists, and verify the
+        Evidence URL resolves.</li>
+        <li><em>Rumor sweep</em>: given a list of names circulating publicly,
+        report each as declared in the file, or as "UNDECLARED - rumor tier"
+        if absent. Validators MUST NOT import rumored systems into the
+        declared set.</li>
+        <li><em>Diff</em>: given a previous version, report added and removed
+        systems and every changed field and score.</li>
+        <li><em>Report</em>: emit a machine-readable report (JSON) containing,
+        per system and per claim, its tier or verdict, all errors and
+        warnings, and the file's SHA-256 hash. Human-readable renderings
+        SHOULD be offered. Verdict vocabulary: VALID, VALID-WITH-WARNINGS,
+        INVALID, plus per-claim ATTESTED / MEASURED / DECLARED / CONTRADICTED
+        / STALE / EVIDENCE-UNREACHABLE and per-system registry verdicts as in
+        item 4.</li>
+      </ol>
+      <section anchor="tolerances">
+        <name>Comparison Tolerances</name>
+        <t>Exact equality is too strict for reconstructed registries.
+        Reference tolerances: release dates differing by at most 31 days are
+        a warning, not a contradiction; parameter counts differing by more
+        than a factor of 2, and training compute differing by more than a
+        factor of 3 (registries estimate compute), are contradictions. An
+        evaluator's own republication of a score supersedes the file's
+        transcription of it.</t>
+      </section>
+    </section>
+    <section anchor="conformance">
+      <name>Conformance Levels</name>
+      <t>Publisher levels:</t>
+      <dl>
+        <dt>Level 1 - Declared</dt>
+        <dd>Valid file, all required fields, signature named.</dd>
+        <dt>Level 2 - Measured</dt>
+        <dd>At least one MEASURED evaluation per generally-available system,
+        JSON mirror published, Registry-ID values cross-linked.</dd>
+        <dt>Level 3 - Attested</dt>
+        <dd>ATTESTED evaluations from at least one independent evaluator for
+        frontier systems, Previous-Version chain maintained, expiry of 90
+        days or less.</dd>
+      </dl>
+      <t>Validator conformance: implements all of
+      <xref target="validator"/> and publishes its test results against the
+      reference test suite (valid, expired, broken, contradicted, and rumor
+      cases).</t>
+    </section>
+    <section anchor="security">
+      <name>Security Considerations</name>
+      <ul spacing="normal">
+        <li><em>Dishonest declarations.</em> The format cannot prevent lying.
+        It converts lies from deniable rumors into signed, timestamped,
+        hashed statements that independent evaluators can contradict on the
+        record - permanently attributable. That is the same bargain that
+        makes <xref target="RFC9116"/> files and financial filings
+        useful.</li>
+        <li><em>Spoofed files.</em> Files on lookalike domains are not the
+        publisher's. Canonical checking plus signature verification are the
+        defence; consumers MUST NOT trust an unsigned or
+        canonical-mismatched file.</li>
+        <li><em>Stale mirrors and caches.</em> Expires bounds the damage;
+        validators MUST surface staleness rather than silently serving old
+        claims.</li>
+        <li><em>Benchmark gaming.</em> Mandatory Conditions and versioned
+        benchmarks make selective reporting visible: a publisher that reports
+        only flattering benchmarks will show conspicuously fewer evaluation
+        blocks than its peers - itself a signal.</li>
+        <li><em>Signature stripping and downgrade.</em> A mirror that drops
+        the signature reduces every claim to at most DECLARED; validators
+        MUST reflect that.</li>
+        <li><em>Denial by omission.</em> A publisher can omit a secret system.
+        The file makes that omission visible as a state (UNDECLARED) once the
+        system is rumored, rather than leaving the rumor unanswerable either
+        way.</li>
+      </ul>
+    </section>
+    <section anchor="privacy">
+      <name>Privacy Considerations</name>
+      <t>The file contains only public, organisational information. Personal
+      data SHOULD NOT appear beyond role-based contacts (as in
+      <xref target="RFC9116"/> practice). Nothing in this specification
+      requires disclosing trade secrets: the Undisclosed rule exists
+      precisely so a publisher can be complete about the shape of its
+      disclosure without revealing protected values.</t>
+    </section>
+    <section anchor="related">
+      <name>Adoption and Relationship to Existing Work</name>
+      <t>Adoption proceeds in layers: makers publish Level 1 files (cost: one
+      static file in the release checklist); evaluators publish results in
+      linkable, hashable reports so blocks can be ATTESTED, and may
+      countersign; registries and monitors ingest files as a first-party
+      source; buyers and journalists cite tiers rather than screenshots.</t>
+      <ul spacing="normal">
+        <li><xref target="RFC9309"/> (robots.txt): the directional opposite
+        and the adoption template - voluntary, trivial, publisher-served.</li>
+        <li><xref target="RFC9116"/> (security.txt): the structural template -
+        well-known location, "Field: value" lines, required Contact and
+        Expires, signed files, an IANA field registry.</li>
+        <li>"ai.txt" proposals <xref target="AI-TXT"/>: content permissions
+        for publishers; complementary, and the reason for this file's
+        distinct name.</li>
+        <li>llms.txt: a content index for agents; unrelated purpose.</li>
+        <li>Model cards and system cards: long-form companions; linked, not
+        replaced.</li>
+        <li>Agent cards (A2A) and MCP server cards: runtime interface
+        descriptions; a complementary layer.</li>
+        <li>Epoch AI, METR, Artificial Analysis, and the Stanford AI Index:
+        the independent reconstruction layer this file feeds and is checked
+        against; adoption of this specification makes their work faster, not
+        obsolete.</li>
+      </ul>
+    </section>
+    <section anchor="open-questions">
+      <name>Open Questions for Reviewers</name>
+      <ol spacing="normal">
+        <li>Should ATTESTED require the evaluator's countersignature, or is a
+        report hash sufficient for version 1?</li>
+        <li>Should Expires for frontier developers be a MUST at 90 days or
+        less, rather than a recommendation?</li>
+        <li>Is a separate incident-contact field needed, or does Contact
+        suffice?</li>
+        <li>Should energy or water use per training run be a required-but-
+        optional field in version 1, or deferred to the field registry?</li>
+        <li>Who should host the field registry and test suite: an IETF path,
+        or a community registry first?</li>
+      </ol>
+    </section>
+    <section anchor="iana">
+      <name>IANA Considerations</name>
+      <section anchor="iana-wellknown">
+        <name>Well-Known URI Registration</name>
+        <t>This document requests registration of the following values in the
+        "Well-Known URIs" registry <xref target="RFC8615"/>:</t>
+        <sourcecode><![CDATA[URI suffix: ai-systems.txt
+Change controller: Peter Briggeman (pbriggeman@gmail.com)
+Specification document(s): [this document]
+Status: provisional
+Related information: The reference implementation, validator, and
+test suite are maintained at
+https://github.com/pbriggeman/ai-systems-txt
+
+URI suffix: ai-systems.json
+Change controller: Peter Briggeman (pbriggeman@gmail.com)
+Specification document(s): [this document], Section "JSON Mirror"
+Status: provisional
+Related information: JSON mirror of ai-systems.txt; on any conflict
+the signed text file prevails.]]></sourcecode>
+      </section>
+      <section anchor="iana-fields">
+        <name>Field-Name Registry</name>
+        <t>This document also suggests a future field-name registry (name,
+        cardinality, status, reference), modelled on the registry established
+        for <xref target="RFC9116"/>, so that new fields (for example,
+        energy use or incident contacts) can be added without breaking
+        parsers; parsers already MUST ignore unknown fields. A registry-prefix
+        registry for Registry-ID values is suggested on the same basis. The
+        initial contents of the field-name registry are the fields defined in
+        <xref target="header-fields"/>, <xref target="system-fields"/>, and
+        <xref target="eval-blocks"/>.</t>
+      </section>
+    </section>
+  </middle>
+  <back>
+    <references>
+      <name>References</name>
+      <references>
+        <name>Normative References</name>
+        <reference anchor="RFC2119" target="https://www.rfc-editor.org/info/rfc2119">
+          <front>
+            <title>Key words for use in RFCs to Indicate Requirement Levels</title>
+            <author initials="S." surname="Bradner" fullname="S. Bradner"/>
+            <date year="1997" month="March"/>
+          </front>
+          <seriesInfo name="BCP" value="14"/>
+          <seriesInfo name="RFC" value="2119"/>
+        </reference>
+        <reference anchor="RFC3339" target="https://www.rfc-editor.org/info/rfc3339">
+          <front>
+            <title>Date and Time on the Internet: Timestamps</title>
+            <author initials="G." surname="Klyne" fullname="G. Klyne"/>
+            <author initials="C." surname="Newman" fullname="C. Newman"/>
+            <date year="2002" month="July"/>
+          </front>
+          <seriesInfo name="RFC" value="3339"/>
+        </reference>
+        <reference anchor="RFC5234" target="https://www.rfc-editor.org/info/rfc5234">
+          <front>
+            <title>Augmented BNF for Syntax Specifications: ABNF</title>
+            <author initials="D." surname="Crocker" fullname="D. Crocker"/>
+            <author initials="P." surname="Overell" fullname="P. Overell"/>
+            <date year="2008" month="January"/>
+          </front>
+          <seriesInfo name="RFC" value="5234"/>
+        </reference>
+        <reference anchor="RFC8174" target="https://www.rfc-editor.org/info/rfc8174">
+          <front>
+            <title>Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words</title>
+            <author initials="B." surname="Leiba" fullname="B. Leiba"/>
+            <date year="2017" month="May"/>
+          </front>
+          <seriesInfo name="BCP" value="14"/>
+          <seriesInfo name="RFC" value="8174"/>
+        </reference>
+        <reference anchor="RFC8615" target="https://www.rfc-editor.org/info/rfc8615">
+          <front>
+            <title>Well-Known Uniform Resource Identifiers (URIs)</title>
+            <author initials="M." surname="Nottingham" fullname="M. Nottingham"/>
+            <date year="2019" month="May"/>
+          </front>
+          <seriesInfo name="RFC" value="8615"/>
+        </reference>
+      </references>
+      <references>
+        <name>Informative References</name>
+        <reference anchor="RFC9116" target="https://www.rfc-editor.org/info/rfc9116">
+          <front>
+            <title>A File Format to Aid in Security Vulnerability Disclosure</title>
+            <author initials="E." surname="Foudil" fullname="E. Foudil"/>
+            <author initials="Y." surname="Shafranovich" fullname="Y. Shafranovich"/>
+            <date year="2022" month="April"/>
+          </front>
+          <seriesInfo name="RFC" value="9116"/>
+        </reference>
+        <reference anchor="RFC9309" target="https://www.rfc-editor.org/info/rfc9309">
+          <front>
+            <title>Robots Exclusion Protocol</title>
+            <author initials="M." surname="Kessler" fullname="M. Kessler"/>
+            <author initials="H." surname="Zawinski" fullname="H. Zawinski"/>
+            <author initials="S." surname="Illyes" fullname="S. Illyes"/>
+            <date year="2022" month="September"/>
+          </front>
+          <seriesInfo name="RFC" value="9309"/>
+        </reference>
+        <reference anchor="AI-TXT" target="https://datatracker.ietf.org/doc/draft-car-ai-txt-wellknown-00/">
+          <front>
+            <title>The ai.txt File: AI Usage Preferences and Licensing</title>
+            <author initials="L." surname="Car" fullname="L. Car"/>
+            <date year="2026" month="June"/>
+          </front>
+          <seriesInfo name="Internet-Draft" value="draft-car-ai-txt-wellknown-00"/>
+        </reference>
+        <reference anchor="EPOCH" target="https://epoch.ai/data">
+          <front>
+            <title>Epoch AI Data: AI Models Dataset and Benchmarking Hub</title>
+            <author><organization>Epoch AI</organization></author>
+            <date year="2026"/>
+          </front>
+        </reference>
+        <reference anchor="REFIMPL" target="https://github.com/pbriggeman/ai-systems-txt">
+          <front>
+            <title>ai-systems.txt: Specification, Reference Validator, and Test Suite</title>
+            <author initials="P." surname="Briggeman" fullname="P. Briggeman"/>
+            <date year="2026"/>
+          </front>
+        </reference>
+      </references>
+    </references>
+    <section anchor="appendix-example">
+      <name>Worked Example</name>
+      <t>The following complete file is fictional. Its rumored successor
+      system ("Example-10") appears nowhere in it and is therefore, to any
+      validator, UNDECLARED.</t>
+      <sourcecode><![CDATA[# ai-systems.txt - EXAMPLE ONLY (fictional maker, fictional system)
+AISystems-Version: 0.2
+Publisher: Example AI, Inc.
+Canonical: https://example-ai.com/.well-known/ai-systems.txt
+Contact: mailto:ai-systems@example-ai.com
+Expires: 2027-01-29T00:00:00Z
+Signature: https://example-ai.com/.well-known/ai-systems.txt.sig
+Systems-Index: https://example-ai.com/.well-known/ai-systems.json
+Policy: https://example-ai.com/transparency
+
+System: Example-9
+Version: 9.2 (build 2026-09-28)
+Status: general-availability
+Released: 2026-09-30
+Predecessor: Example-8.5
+Modalities: text-in, image-in, text-out, tool-use
+Access: api
+Registry-ID: epoch:example-9
+Registry-ID: openrouter:example-ai/example-9
+Endpoint: https://api.example-ai.com/v1
+Context-Window: 1000000
+Parameters: Undisclosed
+Training-Compute: Undisclosed
+Training-Data-Cutoff: 2026-03-31
+System-Card: https://example-ai.com/system-cards/example-9
+
+Evaluation: Epoch Capabilities Index
+Evaluator: Epoch AI (independent)
+Score: ECI 158
+Conditions: hub default, all component benchmarks as published
+Measured: 2026-10-12
+Evidence: https://epoch.ai/benchmarks
+Tier: MEASURED
+
+Evaluation: METR Time Horizon 1.1 (50% horizon)
+Evaluator: METR (independent)
+Score: 11.5 hours
+Conditions: scaffold=triframe, private task suite
+Measured: 2026-10-03
+Evidence: https://metr.org/time-horizons
+Attestation: sha256:00000000000000000000000000000000000000000000
+             000000000000000000000000
+Tier: ATTESTED
+
+Evaluation: SWE-bench Verified (2026-01 release)
+Evaluator: Example AI (self)
+Score: 74.2%
+Conditions: scaffold=standard-agent, effort=high,
+            tools=terminal+editor
+Measured: 2026-09-14
+Evidence: https://example-ai.com/evals/example-9-swebench
+Tier: DECLARED
+
+Safety-Evaluation: UK AISI pre-deployment eval, autonomy + cyber
+  scope, 2026-09-20, https://example-ai.com/safety/aisi-2026-09]]></sourcecode>
+    </section>
+    <section anchor="appendix-schema">
+      <name>JSON Schema for the JSON Mirror (Abridged)</name>
+      <sourcecode type="json"><![CDATA[{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ai-systems.json",
+  "type": "object",
+  "required": ["ai_systems_version", "header", "systems"],
+  "properties": {
+    "ai_systems_version": {"type": "string"},
+    "header": {
+      "type": "object",
+      "required": ["Publisher", "Canonical", "Contact",
+                   "Expires", "Signature"]
+    },
+    "systems": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["System", "Version", "Status", "Released",
+                     "Modalities", "Access", "Parameters",
+                     "Training-Compute", "evaluations"],
+        "properties": {
+          "Status": {"enum": ["research", "preview",
+                     "general-availability", "deprecated",
+                     "retired"]},
+          "Parameters": {"type": ["number", "string"]},
+          "Training-Compute": {"type": ["number", "string"]}
+        }
+      }
+    }
+  }
+}]]></sourcecode>
+      <t>Note: "Parameters" and "Training-Compute" accept a number or the
+      string "Undisclosed". The full schema is maintained with the reference
+      implementation <xref target="REFIMPL"/>.</t>
+    </section>
+    <section anchor="acknowledgements">
+      <name>Acknowledgements</name>
+      <t>The author thanks Jevex for editorial and implementation assistance
+      with this specification, the reference validator, and the test suite,
+      and the maintainers of the security.txt and robots.txt specifications,
+      whose adoption paths this document deliberately follows.</t>
+    </section>
+  </back>
+</rfc>
