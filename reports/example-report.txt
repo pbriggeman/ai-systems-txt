@@ -1,0 +1,23 @@
+ai-systems.txt validation — examples/example-ai-systems.txt
+Publisher: Example AI, Inc.   Expires: 2027-01-29T00:00:00Z   Verdict: VALID-WITH-WARNINGS
+File sha256: 57d5abc710e388b1ba7ee889b510c0e38c21e65248a234b62808c1234b97e8b7
+
+SYSTEM Example-9: registry = NOT-IN-REGISTRY
+
+CLAIMS (fact tiers):
+  [MEASURED] Example-9 — Epoch Capabilities Index: ECI 158 (file tier: MEASURED)
+  [ATTESTED] Example-9 — METR Time Horizon 1.1 (50% horizon): 11.5 hours (file tier: ATTESTED)
+  [DECLARED] Example-9 — SWE-bench Verified (2026-01 release): 74.2% (file tier: DECLARED)
+
+RUMOR SWEEP — not in the file, therefore UNDECLARED:
+  - Example-10
+  - Example-9 Ultra
+  - Ghost-2
+
+WARNINGS:
+  ! system 'Example-9': not found in the Epoch AI registry — unverified as a released system
+
+INFO:
+  i header: expires in 88 days (2027-01-29T00:00:00Z)
+  i header: signature file reachable (prototype: presence checked, cryptographic verification NOT performed)
+  i file sha256: 57d5abc710e388b1ba7ee889b510c0e38c21e65248a234b62808c1234b97e8b7

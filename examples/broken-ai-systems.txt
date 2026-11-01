@@ -1,0 +1,16 @@
+# ai-systems.txt — BROKEN EXAMPLE (for validator testing)
+AISystems-Version: 0.1
+Publisher: Sloppy Labs
+Canonical: https://sloppy.example/.well-known/ai-systems.txt
+Expires: 2025-01-01T00:00:00Z
+
+System: Ghost-1
+Version: 1.0
+Status: kinda-released
+Released: last Tuesday
+Modalities: text-in, text-out
+Access: api
+
+Evaluation: Vibes-Bench
+Score: 99.9%
+Tier: SUPER-VERIFIED

@@ -1,0 +1,58 @@
+# ai-systems.txt — EXAMPLE ONLY (fictional maker, fictional system)
+# Spec: ai-systems-txt v0.1 (draft, 2026-10-31)
+AISystems-Version: 0.1
+Publisher: Example AI, Inc.
+Canonical: https://example-ai.com/.well-known/ai-systems.txt
+Contact: mailto:ai-systems@example-ai.com
+Expires: 2027-01-29T00:00:00Z
+Signature: https://example-ai.com/.well-known/ai-systems.txt.sig
+Systems-Index: https://example-ai.com/.well-known/ai-systems.json
+Policy: https://example-ai.com/transparency
+
+# --- System stanza ---
+System: Example-9
+Version: 9.2 (build 2026-09-28)
+Status: general-availability
+Released: 2026-09-30
+Predecessor: Example-8.5
+Modalities: text-in, image-in, text-out, tool-use
+Access: api
+Registry-ID: epoch:example-9
+Registry-ID: openrouter:example-ai/example-9
+Registry-ID: api-model:example-9-20260930
+Endpoint: https://api.example-ai.com/v1
+Context-Window: 1000000
+Parameters: Undisclosed
+Training-Compute: Undisclosed
+Training-Data-Cutoff: 2026-03-31
+System-Card: https://example-ai.com/system-cards/example-9
+
+Evaluation: Epoch Capabilities Index
+Evaluator: Epoch AI (independent)
+Score: ECI 158
+Conditions: hub default, all component benchmarks as published
+Measured: 2026-10-12
+Evidence: https://epoch.ai/benchmarks
+Tier: MEASURED
+
+Evaluation: METR Time Horizon 1.1 (50% horizon)
+Evaluator: METR (independent)
+Score: 11.5 hours
+Conditions: scaffold=triframe, private task suite
+Measured: 2026-10-03
+Evidence: https://metr.org/time-horizons
+Attestation: sha256:0000000000000000000000000000000000000000000000000000000000000000
+Tier: ATTESTED
+
+Evaluation: SWE-bench Verified (2026-01 release)
+Evaluator: Example AI (self)
+Score: 74.2%
+Conditions: scaffold=standard-agent, effort=high, tools=terminal+editor
+Measured: 2026-09-14
+Evidence: https://example-ai.com/evals/example-9-swebench
+Tier: DECLARED
+
+Safety-Evaluation: UK AISI pre-deployment eval, autonomy + cyber scope, 2026-09-20, https://example-ai.com/safety/aisi-2026-09
+
+# NOTE: a rumored "Example-10" appears nowhere in this file.
+# Under the spec, its validator status is therefore: UNDECLARED — rumor tier.

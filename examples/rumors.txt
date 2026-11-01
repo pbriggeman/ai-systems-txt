@@ -1,0 +1,4 @@
+# Rumored systems to check against a maker's file, one per line
+Example-10
+Example-9 Ultra
+Ghost-2
